@@ -43,9 +43,8 @@ import           XMonad.Util.Font         (releaseXMF, initXMF, Align(AlignCente
 import           XMonad.Util.XUtils       (fi, createNewWindow, paintAndWrite, deleteWindow, showWindow)
 import           Control.Monad            (replicateM)
 import           Control.Arrow            ((&&&))
-import           Data.Functor             (($>))
-import           Data.Maybe               (isJust, listToMaybe)
-import qualified Data.Map.Strict as M     (Map, map, mapWithKey, elems)
+import           Data.Maybe               (isJust)
+import qualified Data.Map.Strict as M     (Map, map, foldr, mapWithKey)
 import           Data.Set                 (toList)
 import           Graphics.X11.Xlib.Extras (getWindowAttributes, getEvent)
 import qualified Data.List as L           (filter, partition, find, nub)
@@ -269,11 +268,11 @@ handleSelectWindow c = do
     PerScreenKeys m ->
       fmap concat
         $ sequence
-        $ M.elems
+        $ M.foldr (:) []
         $ M.mapWithKey (\sid ks -> buildOverlays ks <$> sortedOverlayWindows sid) m
      where
       screenById :: ScreenId -> Maybe (W.Screen WorkspaceId (Layout Window) Window ScreenId ScreenDetail)
-      screenById sid = L.find ((== sid) . screen) (W.screens ws)
+      screenById sid = L.find ((== sid) . screen) (W.current ws : W.visible ws)
       visibleWindowsOnScreen :: ScreenId -> [Window]
       visibleWindowsOnScreen sid = L.filter (`elem` toList mappedWins) $ W.integrate' $ screenById sid >>= W.stack . W.workspace
       sortedOverlayWindows :: ScreenId -> X [OverlayWindow]
@@ -290,12 +289,12 @@ handleSelectWindow c = do
         -- focus the selected window
         Selected o -> return . Just . win . overlayWin $ o
         -- return focus correctly
-        _ -> whenJust (W.peek ws) (windows . W.focusWindow) $> Nothing
-    else releaseXMF f $> Nothing
+        _ -> whenJust (W.peek ws) (windows . W.focusWindow) >> return Nothing
+    else releaseXMF f >> return Nothing
  where
   allKeys :: ChordKeys -> [KeySym]
   allKeys (AnyKeys ks) = ks
-  allKeys (PerScreenKeys m) = concat $ M.elems m
+  allKeys (PerScreenKeys m) = concat $ M.foldr (:) [] m
 
   buildOverlays :: [KeySym] -> [OverlayWindow] -> [Overlay]
   buildOverlays ks = appendChords (maxChordLen c) ks
@@ -327,7 +326,7 @@ selectWindow :: EasyMotionConfig -> X (Maybe Window)
 selectWindow conf =
   handleSelectWindow conf { sKeys = sanitiseKeys (sKeys conf) }
  where
-  -- make sure the key lists don't contain: backspace, our cancel key, or duplicates
+  -- make sure the key lists don't contain: backspace, or duplicates
   sanitise :: [KeySym] -> [KeySym]
   sanitise = L.nub . L.filter (`notElem` [xK_BackSpace, cancelKey conf])
   sanitiseKeys :: ChordKeys -> ChordKeys
@@ -340,7 +339,7 @@ selectWindow conf =
 appendChords :: Int -> [KeySym] -> [OverlayWindow] -> [Overlay]
 appendChords _ [] _ = []
 appendChords maxUserSelectedLen ks overlayWins =
-  zipWith Overlay overlayWins chords
+  zipWith (\ow c -> Overlay { overlayWin=ow, chord=c }) overlayWins chords
  where
   chords = replicateM chordLen ks
   -- the minimum necessary chord length to assign a unique chord to each visible window
@@ -369,7 +368,6 @@ handleKeyboard dpy drawFn cancel selected deselected = do
             | isNextOverlayKey s -> handleNextOverlayKey s
             | otherwise -> handleKeyboard dpy drawFn cancel selected deselected
      | ev_event_type ev == buttonPress -> do
-         -- See XMonad.Prompt Note [Allow ButtonEvents]
          io $ allowEvents dpy replayPointer currentTime
          handleKeyboard dpy drawFn cancel selected deselected
      | otherwise -> handleKeyboard dpy drawFn cancel selected deselected
@@ -379,12 +377,12 @@ handleKeyboard dpy drawFn cancel selected deselected = do
     case x of
       Backspace -> redraw >> handleKeyboard dpy drawFn cancel selected deselected
       _ -> return x
-  isNextOverlayKey keySym = isJust (L.find ((== Just keySym) . listToMaybe .chord) selected)
+  isNextOverlayKey keySym = isJust (L.find ((== keySym) . head .chord) selected)
   handleNextOverlayKey keySym =
     case fg of
       [x] -> return $ Selected x
       _   -> handleKeyboard dpy drawFn cancel (trim fg) (clear bg) >>= retryBackspace
    where
-    (fg, bg) = L.partition ((== Just keySym) . listToMaybe . chord) selected
+    (fg, bg) = L.partition ((== keySym) . head . chord) selected
     trim = map (\o -> o { chord = tail $ chord o })
     clear = map (\o -> o { chord = [] })
