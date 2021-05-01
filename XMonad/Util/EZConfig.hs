@@ -109,7 +109,7 @@ additionalKeysP conf keyList =
 -- >                 `removeKeys` [(mod1Mask .|. shiftMask, n) | n <- [xK_1 .. xK_9]]
 removeKeys :: XConfig a -> [(KeyMask, KeySym)] -> XConfig a
 removeKeys conf keyList =
-    conf { keys = \cnf -> foldr M.delete (keys conf cnf) keyList }
+    conf { keys = \cnf -> keys conf cnf `M.difference` M.fromList (zip keyList $ repeat ()) }
 
 -- | Like 'removeKeys', except using short @String@ key descriptors
 --   like @\"M-m\"@ instead of @(modMask, xK_m)@, as described in the
@@ -130,7 +130,8 @@ additionalMouseBindings conf mouseBindingsList =
 -- | Like 'removeKeys', but for mouse bindings.
 removeMouseBindings :: XConfig a -> [(ButtonMask, Button)] -> XConfig a
 removeMouseBindings conf mouseBindingList =
-    conf { mouseBindings = \cnf -> foldr M.delete (mouseBindings conf cnf) mouseBindingList }
+    conf { mouseBindings = \cnf -> mouseBindings conf cnf `M.difference`
+                                   M.fromList (zip mouseBindingList $ repeat ()) }
 
 
 --------------------------------------------------------------
