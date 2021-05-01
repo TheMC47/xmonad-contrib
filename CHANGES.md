@@ -289,9 +289,6 @@
     - Added `compgenDirectories` and `compgenFiles` to get the directory/filename completion
       matches returned by the compgen shell builtin.
 
-    - Added `safeDirPrompt`, which is like `safePrompt`, but optimized
-      for the use-case of a program that needs a file as an argument.
-
   * `XMonad.Prompt.Unicode`
 
     - Reworked internally to call `spawnPipe` (asynchronous) instead of
