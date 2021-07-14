@@ -41,7 +41,9 @@ module XMonad.Hooks.RefocusLast (
   RecentWins(..),
   RecentsMap(..),
   RefocusLastLayoutHook(..),
-  RefocusLastToggle(..)
+  RefocusLastToggle(..),
+  -- * Library functions
+  withRecentsIn,
 ) where
 
 import XMonad
@@ -110,7 +112,7 @@ data RecentWins = Recent { previous :: !Window, current :: !Window }
 -- | Newtype wrapper for a @Map@ holding the @RecentWins@ for each workspace.
 --   Is an instance of @ExtensionClass@ with persistence of state.
 newtype RecentsMap = RecentsMap (M.Map WorkspaceId RecentWins)
-  deriving (Show, Read, Eq, Typeable)
+  deriving (Show, Read, Eq)
 
 instance ExtensionClass RecentsMap where
   initialValue = RecentsMap M.empty
@@ -126,7 +128,7 @@ instance LayoutModifier RefocusLastLayoutHook a where
 
 -- | A newtype on @Bool@ to act as a universal toggle for refocusing.
 newtype RefocusLastToggle = RefocusLastToggle { refocusing :: Bool }
-  deriving (Show, Read, Eq, Typeable)
+  deriving (Show, Read, Eq)
 
 instance ExtensionClass RefocusLastToggle where
   initialValue  = RefocusLastToggle { refocusing = True }
@@ -262,7 +264,7 @@ updateRecentsOn tag = withWindowSet $ \ws ->
 
 -- }}}
 
--- --< Private Utilities >-- {{{
+-- --< Utilities >-- {{{
 
 -- | Focuses the first window in the list it can find on the current workspace.
 tryFocus :: [Window] -> WindowSet -> WindowSet

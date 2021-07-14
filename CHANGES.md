@@ -47,6 +47,10 @@
       activation behavior and then add resulting `ManageHook` using
       `activateLogHook` to your `logHook`. Also, module `X.H.Focus` provides
       additional combinators.
+      
+    - Ordering of windows that are set to `_NET_CLIENT_LIST` and `_NET_CLIENT_LIST_STACKING`
+      was changed to be closer to the spec. From now these two lists will have
+      differently sorted windows.
 
   * All modules still exporting a `defaultFoo` constructor
 
@@ -118,6 +122,7 @@
     - Deprecated `EmptyWS`, `HiddenWS`, `NonEmptyWS`, `HiddenNonEmptyWS`,
       `HiddenEmptyWS`, `AnyWS` and `WSTagGroup`.
 
+
 ### New Modules
 
   * `XMonad.Hooks.StatusBar.PP`
@@ -188,7 +193,8 @@
 
   * `XMonad.Hooks.DynamicIcons`
 
-    Added Dynamic Strings as `dynamicLogIconWithPP` based on a Workspaces Windows
+    Dynamically augment workspace names logged to a status bar via DynamicLog
+    based on the contents (windows) of the workspace.
 
   * `XMonad.Hooks.WindowSwallowing`
 
@@ -270,6 +276,13 @@
     to restart/reposition status bars or systrays automatically after xrandr,
     as well as to actually invoke xrandr or autorandr when an output is
     (dis)connected.
+
+  * `XMonad.Actions.EasyMotion`
+
+    A new module that allows selection of visible screens using a key chord.
+    Inspired by [vim-easymotion](https://github.com/easymotion/vim-easymotion). See the animation
+    in the vim-easymotion repo to get some idea of the functionality of this
+    EasyMotion module.
 
 ### Bug Fixes and Minor Changes
 
@@ -379,6 +392,9 @@
 
      - Exported the `scratchpadWorkspaceTag`.
 
+     - Added a new logHook `nsHideOnFocusLoss` for hiding scratchpads
+       when they lose focus.
+
   * `XMonad.Prompt.Window`
 
     - Added `allApplications` function which maps application executable
@@ -482,6 +498,8 @@
 
     - Added `focusWindow` and `focusNth` which don't refresh (and thus
       possibly flicker) when they happen to be a no-op.
+
+    - Added `shiftWin` as a refresh tracking version of `W.shiftWin`.
 
   * Several `LayoutClass` instances now have an additional `Typeable`
     constraint which may break some advanced configs. The upside is that we
@@ -646,6 +664,9 @@
     - Added `ingoringWSs` as a `WSType` predicate to skip workspaces having a
       tag in a given list.
 
+  - `XMonad.Actions.DynamicWorkspaceOrder`
+
+    - Added `swapWithCurrent` and `swapOrder` to the list of exported names.
 
 ## 0.16
 
@@ -970,13 +991,6 @@
 
     Currently needs manual setting of the session start flag. This could be
     automated when this moves to the core repository.
-
-  * `XMonad.Actions.EasyMotion`
-
-    A new module that allows selection of visible screens using a key chord.
-    Inspired by [vim-easymotion](https://github.com/easymotion/vim-easymotion). See the animation
-    in the vim-easymotion repo to get some idea of the functionality of this
-    EasyMotion module.
 
   * `XMonad.Layout.MultiDishes`
 

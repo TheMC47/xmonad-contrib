@@ -1,4 +1,3 @@
-{-# LANGUAGE DeriveDataTypeable #-}
 {-# LANGUAGE MultiWayIf #-}
 {-# LANGUAGE PatternGuards #-}
 
@@ -111,7 +110,7 @@ ewmhDesktopsLogHook = ewmhDesktopsLogHookCustom id
 -- Cached desktop names (e.g. @_NET_NUMBER_OF_DESKTOPS@ and
 -- @_NET_DESKTOP_NAMES@).
 newtype DesktopNames = DesktopNames [String]
-                     deriving (Eq)
+                     deriving Eq
 
 instance ExtensionClass DesktopNames where
     initialValue = DesktopNames []
@@ -119,15 +118,23 @@ instance ExtensionClass DesktopNames where
 -- |
 -- Cached client list (e.g. @_NET_CLIENT_LIST@).
 newtype ClientList = ClientList [Window]
-                   deriving (Eq)
+                   deriving Eq
 
 instance ExtensionClass ClientList where
     initialValue = ClientList [none]
 
 -- |
+-- Cached stacking client list (e.g. @_NET_CLIENT_LIST_STACKING@).
+newtype ClientListStacking = ClientListStacking [Window]
+                           deriving Eq
+
+instance ExtensionClass ClientListStacking where
+    initialValue = ClientListStacking [none]
+
+-- |
 -- Cached current desktop (e.g. @_NET_CURRENT_DESKTOP@).
 newtype CurrentDesktop = CurrentDesktop Int
-                       deriving (Eq)
+                       deriving Eq
 
 instance ExtensionClass CurrentDesktop where
     initialValue = CurrentDesktop (-1)
@@ -135,7 +142,7 @@ instance ExtensionClass CurrentDesktop where
 -- |
 -- Cached window-desktop assignments (e.g. @_NET_CLIENT_LIST_STACKING@).
 newtype WindowDesktops = WindowDesktops (M.Map Window Int)
-                       deriving (Eq)
+                       deriving Eq
 
 instance ExtensionClass WindowDesktops where
     initialValue = WindowDesktops (M.singleton none (-1))
@@ -144,7 +151,7 @@ instance ExtensionClass WindowDesktops where
 -- The value of @_NET_ACTIVE_WINDOW@, cached to avoid unnecessary property
 -- updates.
 newtype ActiveWindow = ActiveWindow Window
-                     deriving (Eq)
+                     deriving Eq
 
 instance ExtensionClass ActiveWindow where
     initialValue = ActiveWindow (complement none)
@@ -172,9 +179,16 @@ ewmhDesktopsLogHookCustom t = withWindowSet $ \s -> do
         setNumberOfDesktops (length desktopNames)
         setDesktopNames desktopNames
 
-    -- Set client list; all windows, with focused windows last
-    let clientList = nub . concatMap (maybe [] (\(W.Stack x l r) -> reverse l ++ r ++ [x]) . W.stack) $ ws
+    -- Set client list which should be sorted by window age. We just
+    -- guess that StackSet contains windows list in this order which
+    -- isn't true but at least gives consistency with windows cycling
+    let clientList = nub . concatMap (W.integrate' . W.stack) $ ws
     whenChanged (ClientList clientList) $ setClientList clientList
+
+    -- Set stacking client list which should have bottom-to-top
+    -- stacking order, i.e. focused window should be last
+    let clientListStacking = nub . concatMap (maybe [] (\(W.Stack x l r) -> reverse l ++ r ++ [x]) . W.stack) $ ws
+    whenChanged (ClientListStacking clientListStacking) $ setClientListStacking clientListStacking
 
     -- Remap the current workspace to handle any renames that f might be doing.
     let maybeCurrent' = W.tag <$> listToMaybe (t [W.workspace $ W.current s])
@@ -217,7 +231,7 @@ ewmhDesktopsEventHookCustom f e = handle f e >> return (All True)
 -- this value in global state, because i use 'logHook' for handling activated
 -- windows and i need a way to tell 'logHook' what window is activated.
 newtype NetActivated    = NetActivated {netActivated :: Maybe Window}
-  deriving (Show, Typeable)
+  deriving Show
 instance ExtensionClass NetActivated where
     initialValue        = NetActivated Nothing
 
@@ -355,12 +369,15 @@ setDesktopNames names = withDisplay $ \dpy -> do
 
 setClientList :: [Window] -> X ()
 setClientList wins = withDisplay $ \dpy -> do
-    -- (What order do we really need? Something about age and stacking)
     r <- asks theRoot
     a <- getAtom "_NET_CLIENT_LIST"
     io $ changeProperty32 dpy r a wINDOW propModeReplace (fmap fromIntegral wins)
-    a' <- getAtom "_NET_CLIENT_LIST_STACKING"
-    io $ changeProperty32 dpy r a' wINDOW propModeReplace (fmap fromIntegral wins)
+
+setClientListStacking :: [Window] -> X ()
+setClientListStacking wins = withDisplay $ \dpy -> do
+    r <- asks theRoot
+    a <- getAtom "_NET_CLIENT_LIST_STACKING"
+    io $ changeProperty32 dpy r a wINDOW propModeReplace (fmap fromIntegral wins)
 
 setWindowDesktop :: (Integral a) => Window -> a -> X ()
 setWindowDesktop win i = withDisplay $ \dpy -> do

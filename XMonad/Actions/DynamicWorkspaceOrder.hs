@@ -1,5 +1,3 @@
-{-# LANGUAGE DeriveDataTypeable #-}
-
 -----------------------------------------------------------------------------
 -- |
 -- Module      :  XMonad.Actions.DynamicWorkspaceOrder
@@ -23,6 +21,8 @@ module XMonad.Actions.DynamicWorkspaceOrder
       getWsCompareByOrder
     , getSortByOrder
     , swapWith
+    , swapWithCurrent
+    , swapOrder
     , updateName
     , removeName
 
@@ -90,7 +90,7 @@ import Data.Ord (comparing)
 
 -- | Extensible state storage for the workspace order.
 newtype WSOrderStorage = WSO { unWSO :: Maybe (M.Map WorkspaceId Int) }
-  deriving (Typeable, Read, Show)
+  deriving (Read, Show)
 
 instance ExtensionClass WSOrderStorage where
   initialValue = WSO Nothing
