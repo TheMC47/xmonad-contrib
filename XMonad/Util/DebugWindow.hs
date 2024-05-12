@@ -142,7 +142,7 @@ catchX' :: X a -> X a -> X a
 catchX' job errcase = do
   st <- get
   c <- ask
-  (a, s') <- io $ runX c st job `E.catch` \e -> case fromException e of
+  (a, s', _) <- io $ runX c st job `E.catch` \e -> case fromException e of
     Just x -> throw e `const` (x `asTypeOf` ExitSuccess)
     _      -> runX c st errcase
   put s'
