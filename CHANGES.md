@@ -20,6 +20,14 @@
       myFunc` should be changed to `historyCompletionP myConf myFunc`.
       If not `myConf` is lying around, `def` can be used instead.
 
+  * `XMonad.Actions.GridSelect`
+
+    - Added the `gs_cancelOnEmptyClick` field to `GSConfig`, which makes
+      mouse clicks into "empty space" cancel the current grid-select.
+      Users explicitly defining their own `GSConfig` record will have to
+      add this to their definitions. Additionally, the field defaults to
+      `True`—to retain the old behaviour, set it to `False`.
+
 ### New Modules
 
   * `XMonad.Actions.Profiles`
@@ -33,6 +41,15 @@
       (ConfigureRequest). Useful as a workaround for some misbehaving client
       applications (Steam, rxvt-unicode, anything that tries to restore
       absolute position of floats).
+
+  * `XMonad.Layout.Columns`
+
+    - Organize windows in columns. This layout allows to move/resize windows in
+      every directions.
+
+  * `XMonad.Prompt.WindowBringer`
+
+    - Added `copyMenu`, a convenient way to copy a window to the current workspace.
 
 ### Bug Fixes and Minor Changes
 
@@ -69,6 +86,11 @@
 
     - Added `visualSubmapSorted` to enable sorting of the keymap
       descriptions.
+
+  * `XMonad.Hooks.ScreenCorners`
+
+    - Added screen edge support with `SCTop`, `SCBottom`, `SCLeft` and
+      `SCRight`. Now both corners and edges are supported.
 
 ### Other changes
 
